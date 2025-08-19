@@ -1,2 +1,2 @@
 # mpdw
-Praktikum MPDW 2025
+Praktikum MPDW (Metode Peramalan Deret Waktu) 2025

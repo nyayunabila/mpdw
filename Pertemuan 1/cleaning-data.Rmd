@@ -1,1 +1,41 @@
+# Cleaning Data FMCG
+
+```{r}
+library(tidyverse)
+```
+```{r}
+# Load the data
+fmcg <- read_csv("C:/Users/nyayu/Downloads/archive (3)/FMCG_2022_2024.csv")
+
+glimpse(fmcg)
+```
+```{r}
+# filter data
+fmcg_filtered <- fmcg %>%
+  filter(sku == "MI-006", region == "PL-Central") %>%
+  select(date, units_sold, price_unit, ) %>%
+  arrange(date)
+```
+
+```{r}
+# Total sales
+fmcg_daily <- fmcg_filtered %>%
+  group_by(date) %>%
+  summarise(
+    daily_revenue    = sum(price_unit * units_sold, na.rm = TRUE)
+  ) %>%
+  arrange(date)
+
+fmcg_daily
+```
+```{r}
+# Save the cleaned data
+write_csv(fmcg_daily, "fmcg_cleaned_daily.csv")
+```
+
+
+
+
+
+
 

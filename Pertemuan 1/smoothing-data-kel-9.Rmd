@@ -1,1 +1,367 @@
+---
+title: "Pertemuan 1 - Pemulusan"
+author: Nyayu Azzahra Nabila
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r}
+library("forecast")
+library("graphics")
+library("TTR")
+library("TSA")
+```
+
+## Impor Data
+
+```{r}
+#install.packages("rio") #install jika belum ada
+library(rio)
+data_fmcg <- import("https://raw.githubusercontent.com/nyayunabila/mpdw/refs/heads/main/Pertemuan%201/data-kelompok-9-mpdw.csv")
+```
+
+## Subset Data
+```{r}
+#ambil baris 101-200
+subset_data <- data_fmcg[101:200, 2]
+
+#gabungkan data.frame dengan subset_data
+data101 <- data.frame(periode = 1:100, daily_revenue = subset_data)
+
+```
+
+## Eksplorasi Data
+
+```{r}
+View(data101)
+str(data101)
+dim(data101)
+```
+Mengubah data agar terbaca sebagai data deret waktu dengan fungsi `ts()` .
+
+```{r}
+data101.ts <- ts(data101$daily_revenue)
+```
+
+Menampilkan ringkasan data
+
+```{r}
+summary(data101.ts)
+```
+Membuat plot data deret waktu
+
+```{r}
+ts.plot(data101.ts, xlab="Time Period ", ylab="daily_revenue", 
+        main = "Time Series Plot")
+points(data101.ts)
+```
+Kalau dilihat dari plotnya, trennya tidak naik ataupun turun. Tetapi yang pasti data tidak termasuk data musiman, karena tidak ada plot musiman yang terlihat. Sehingga, saya akan mencoba menggunakan SMA dan SES.
+
+## Single Moving Average & Double Moving Average
+
+### Pembagian Data
+
+Pembagian data latih dan data uji dilakukan dengan perbandingan 80% data latih dan 20% data uji.
+
+```{r}
+#membagi data latih dan data uji
+training101_ma <- data101[1:80,]
+testing101_ma <- data101[81:100,]
+train101_ma.ts <- ts(training101_ma$daily_revenue)
+test101_ma.ts <- ts(testing101_ma$daily_revenue)
+```
+
+### Eksplorasi Data
+
+```{r}
+#Eksplorasi dengan GGPLOT
+library(ggplot2)
+ggplot() + 
+  geom_line(data = training101_ma, aes(x = periode, y = daily_revenue, col = "Data Latih")) +
+  geom_line(data = testing101_ma, aes(x = periode, y = daily_revenue, col = "Data Uji")) +
+  labs(x = "date", y = "daily revenue", color = "Legend") +
+  scale_colour_manual(name="Keterangan:", breaks = c("Data Latih", "Data Uji"),
+                      values = c("blue", "red")) + 
+  theme_bw() + theme(legend.position = "bottom",
+                     plot.caption = element_text(hjust=0.5, size=12))
+```
+
+### Single Moving Average (SMA)
+
+n=4
+
+```{r}
+data101.sma<-SMA(train101_ma.ts, n=4)
+data101.sma
+```
+Data pemulusan pada periode ke-t selanjutnya digunakan sebagai nilai peramalan pada periode ke t+1 sehingga hasil peramalan 1 periode kedepan adalah sebagai berikut.
+
+```{r}
+data101.ramal<-c(NA,data101.sma)
+data101.ramal #forecast 1 periode ke depan
+```
+Selanjutnya akan dilakukan peramalan sejumlah data uji yaitu 20 periode. Pada metode SMA, hasil peramalan 20 periode ke depan akan bernilai sama dengan hasil peramalan 1 periode kedepan. Dalam hal ini akan dilakukan pengguabungan data aktual train, data hasil pemulusan dan data hasil ramalan 20 periode kedepan.
+
+
+```{r}
+data101.gab<-cbind(aktual=c(train101_ma.ts,rep(NA,20)),pemulusan=c(data101.sma,rep(NA,20)),ramalan=c(data101.ramal,rep(data101.ramal[length(data101.ramal)],19)))
+data101.gab #forecast 20 periode ke depan
+```
+
+Adapun plot data deret waktu dari hasil peramalan yang dilakukan adalah sebagai berikut.
+
+```{r}
+ts.plot(data101.ts, xlab="Time Period ", ylab="Sales", main= "SMA N=4 Data Daily Revenue")
+points(data101.ts)
+lines(data101.gab[,2],col="green",lwd=2)
+lines(data101.gab[,3],col="red",lwd=2)
+legend("topleft",c("data aktual","data pemulusan","data peramalan"), lty=8, col=c("black","green","red"), cex=0.5)
+```
+
+Selanjutnya perhitungan akurasi dilakukan dengan ukuran akurasi *Sum Squares Error* (SSE), *Mean Square Error* (MSE) dan *Mean Absolute Percentage Error* (MAPE). Perhitungan akurasi dilakukan baik pada data latih maupun pada data uji.
+
+```{r}
+#Menghitung nilai keakuratan data latih
+error101_train.sma = train101_ma.ts-data101.ramal[1:length(train101_ma.ts)]
+SSE101_train.sma = sum(error101_train.sma[5:length(train101_ma.ts)]^2)
+MSE101_train.sma = mean(error101_train.sma[5:length(train101_ma.ts)]^2)
+MAPE101_train.sma = mean(abs((error101_train.sma[5:length(train101_ma.ts)]/train101_ma.ts[5:length(train101_ma.ts)])*100))
+
+akurasi101_train.sma <- matrix(c(SSE101_train.sma, MSE101_train.sma, MAPE101_train.sma))
+row.names(akurasi101_train.sma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi101_train.sma) <- c("Akurasi m = 4")
+akurasi101_train.sma
+```
+
+Dalam hal ini nilai MAPE data latih pada metode pemulusan SMA lebih dari 50% yaitu 69% artinya prediksi tidak akurat.
+
+```{r}
+#Menghitung nilai keakuratan data uji
+error101_test.sma = test101_ma.ts-data101.gab[81:100,3]
+SSE101_test.sma = sum(error101_test.sma^2)
+MSE101_test.sma = mean(error101_test.sma^2)
+MAPE101_test.sma = mean(abs((error101_test.sma/test101_ma.ts*100)))
+
+akurasi101_test.sma <- matrix(c(SSE101_test.sma, MSE101_test.sma, MAPE101_test.sma))
+row.names(akurasi101_test.sma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi101_test.sma) <- c("Akurasi m = 2")
+akurasi101_test.sma
+```
+
+Perhitungan akurasi menggunakan data latih menghasilkan nilai MAPE yang lebih dari 20% sehingga nilai akurasi artinya prediksi tidak akurat.
+
+Saya penasaran bagaimana jika kita ubah nilai n pada metode SMA menjadi 6, maka hasilnya adalah sebagai berikut.
+
+n=6
+
+```{r}
+data101.sma<-SMA(train101_ma.ts, n=6)
+data101.sma
+
+data101.ramal<-c(NA,data101.sma)
+data101.ramal #forecast 1 periode ke depan
+
+data101.gab<-cbind(aktual=c(train101_ma.ts,rep(NA,20)),pemulusan=c(data101.sma,rep(NA,20)),ramalan=c(data101.ramal,rep(data101.ramal[length(data101.ramal)],19)))
+data101.gab #forecast 20 periode ke depan
+
+ts.plot(data101.ts, xlab="Time Period ", ylab="Sales", main= "SMA N=4 Data Daily Revenue")
+points(data101.ts)
+lines(data101.gab[,2],col="green",lwd=2)
+lines(data101.gab[,3],col="red",lwd=2)
+legend("topleft",c("data aktual","data pemulusan","data peramalan"), lty=8, col=c("black","green","red"), cex=0.5)
+
+#Menghitung nilai keakuratan data latih
+error101_train.sma = train101_ma.ts-data101.ramal[1:length(train101_ma.ts)]
+SSE101_train.sma = sum(error101_train.sma[7:length(train101_ma.ts)]^2)
+MSE101_train.sma = mean(error101_train.sma[7:length(train101_ma.ts)]^2)
+MAPE101_train.sma = mean(abs((error101_train.sma[7:length(train101_ma.ts)]/train101_ma.ts[7:length(train101_ma.ts)])*100))
+
+akurasi101_train.sma <- matrix(c(SSE101_train.sma, MSE101_train.sma, MAPE101_train.sma))
+row.names(akurasi101_train.sma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi101_train.sma) <- c("Akurasi m = 4")
+akurasi101_train.sma
+
+#Menghitung nilai keakuratan data uji
+error101_test.sma = test101_ma.ts-data101.gab[81:100,3]
+SSE101_test.sma = sum(error101_test.sma^2)
+MSE101_test.sma = mean(error101_test.sma^2)
+MAPE101_test.sma = mean(abs((error101_test.sma/test101_ma.ts*100)))
+
+akurasi101_test.sma <- matrix(c(SSE101_test.sma, MSE101_test.sma, MAPE101_test.sma))
+row.names(akurasi101_test.sma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi101_test.sma) <- c("Akurasi m = 2")
+akurasi101_test.sma
+
+```
+
+Pada n = 6, nilai MAPE data latih pada metode pemulusan SMA lebih dari 50% yaitu 66% artinya prediksi tidak akurat. Sedangkan nilai MAPE data uji pada metode pemulusan SMA lebih dari 20% yaitu 37% artinya prediksi tidak akurat.
+
+Kita akan coba dengan metode DMA 
+
+### Double Moving Average (DMA)
+
+```{r}
+dma <- SMA(data101.sma, n = 4)
+At <- 2*data101.sma - dma
+Bt <- 2/ (4-1)*(data101.sma - dma)
+data101.dma<- At+Bt
+data101.ramal2<- c(NA, data101.dma)
+
+t = 1:20
+f = c()
+
+for (i in t) {
+  f[i] = At[length(At)] + Bt[length(Bt)]*(i)
+}
+
+data101.gab2 <- cbind(aktual = c(train101_ma.ts,rep(NA,20)), pemulusan1 = c(data101.sma,rep(NA,20)),pemulusan2 = c(data101.dma, rep(NA,20)),At = c(At, rep(NA,20)), Bt = c(Bt,rep(NA,20)),ramalan = c(data101.ramal2, f[-1]))
+data101.gab2
+
+```
+
+Hasil pemulusan menggunakan metode DMA divisualisasikan sebagai berikut
+
+```{r}
+ts.plot(data101.ts, xlab="Time Period ", ylab="Sales", main= "DMA N=2 Data Sales")
+points(data101.ts)
+lines(data101.gab2[,3],col="green",lwd=2)
+lines(data101.gab2[,6],col="red",lwd=2)
+legend("topleft",c("data aktual","data pemulusan","data peramalan"), lty=8, col=c("black","green","red"), cex=0.8)
+
+```
+
+Selanjutnya perhitungan akurasi dilakukan baik pada data latih maupun data uji. Perhitungan akurasi dilakukan dengan ukuran akurasi SSE, MSE dan MAPE.
+
+```{r}
+#Menghitung nilai keakuratan data latih
+error101_train.dma = train101_ma.ts-data101.ramal2[1:length(train101_ma.ts)]
+SSE101_train.dma = sum(error101_train.dma[20:length(train101_ma.ts)]^2)
+MSE101_train.dma = mean(error101_train.dma[20:length(train101_ma.ts)]^2)
+MAPE101_train.dma = mean(abs((error101_train.dma[20:length(train101_ma.ts)]/train_ma.ts[20:length(train101_ma.ts)])*100))
+
+akurasi101_train.dma <- matrix(c(SSE101_train.dma, MSE101_train.dma, MAPE101_train.dma))
+row.names(akurasi101_train.dma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi101_train.dma) <- c("Akurasi m = 4")
+akurasi101_train.dma
+```
+Perhitungan akurasi pada data latih menggunakan nilai MAPE menghasilkan nilai MAPE 0.08%
+
+```{r}
+#Menghitung nilai keakuratan data uji
+error101_test.dma = test101_ma.ts-data101.gab2[81:100,6]
+SSE101_test.dma = sum(error101_test.dma^2)
+MSE101_test.dma = mean(error101_test.dma^2)
+MAPE101_test.dma = mean(abs((error101_test.dma/test101_ma.ts*100)))
+
+akurasi101_test.dma <- matrix(c(SSE101_test.dma, MSE101_test.dma, MAPE101_test.dma))
+row.names(akurasi101_test.dma)<- c("SSE", "MSE", "MAPE")
+colnames(akurasi101_test.dma) <- c("Akurasi m = 2")
+akurasi101_test.dma
+```
+
+Dari hasil perhitungan akurasi pada data uji menggunakan nilai MAPE menghasilkan nilai MAPE 0.098 % pada data latih dan 234 persen pada data uji, hal ini mengindikasikan overfitting.
+
+Kita akan mencoba dengan metode SES dan DES 
+
+## Single Exponential Smoothing & Double Exponential Smoothing
+
+### Pembagian Data
+
+Pembagian data latih dan data uji dilakukan dengan perbandingan 80% data latih dan 20% data uji.
+
+```{r}
+#membagi training dan testing
+training101<-data101[1:80,]
+testing101<-data101[81:100,]
+train101.ts <- ts(training101$daily_revenue)
+test101.ts <- ts(testing101$daily_revenue)
+```
+
+### Eksplorasi
+
+```{r}
+#Eksplorasi dengan GGPLOT
+library(ggplot2)
+ggplot() + 
+  geom_line(data = training101, aes(x = periode, y = daily_revenue, col = "Data Latih")) +
+  geom_line(data = testing101, aes(x = periode, y = daily_revenue, col = "Data Uji")) +
+  labs(x = "Periode Waktu", y = "Membaca", color = "Legend") +
+  scale_colour_manual(name="Keterangan:", breaks = c("Data Latih", "Data Uji"),
+                      values = c("blue", "red")) + 
+  theme_bw() + theme(legend.position = "bottom",
+                     plot.caption = element_text(hjust=0.5, size=12))
+```
+
+### SES
+
+Single Exponential Smoothing merupakan metode pemulusan yang tepat digunakan untuk data dengan pola stasioner atau konstan.
+
+Nilai pemulusan pada periode ke-t didapat dari persamaan:
+
+$$
+\tilde{y}_T=\lambda y_t+(1-\lambda)\tilde{y}_{T-1}
+$$
+
+Nilai parameter $\lambda$ adalah nilai antara 0 dan 1.
+
+Nilai pemulusan periode ke-t bertindak sebagai nilai ramalan pada periode ke-$(T+\tau)$.
+
+$$
+\tilde{y}_{T+\tau}(T)=\tilde{y}_T
+$$
+
+Nilai parameter $\alpha$ dari kedua fungsi dapat dioptimalkan menyesuaikan dari *error*-nya paling minimumnya. Caranya adalah dengan membuat parameter $\alpha =$ `NULL` .
+
+```{r}
+#SES
+ses101.opt <- ses(train101.ts, h = 20, alpha = NULL)
+plot(ses101.opt)
+ses101.opt
+
+#Lamda Optimum Holt Winter
+sesopt101<- HoltWinters(train101.ts, gamma = FALSE, beta = FALSE,alpha = NULL)
+sesopt101
+plot(sesopt101)
+
+#ramalan
+ramalanopt101<- forecast(sesopt101, h=20)
+ramalanopt101
+```
+
+Selanjutnya akan dilakukan perhitungan akurasi pada data latih maupun data uji dengan ukuran akurasi SSE, MSE dan MAPE.
+
+
+```{r}
+#cara lain
+accuracy(ramalanopt101,testing101$daily_revenue)
+```
+Pada metode SES, nilai MAPE yang dihasilkan juga cukup tinggi yang artinya prediksi kurang akurat, sehingga saya akan mencoba metode DES. 
+
+
+### DES
+
+
+```{r}
+#Lamda dan gamma optimum
+des101.opt<- HoltWinters(train101.ts, gamma = FALSE)
+des101.opt
+plot(des101.opt)
+
+#ramalan
+ramalandesopt101<- forecast(des101.opt, h=20)
+ramalandesopt101
+```
+
+
+Selanjutnya akan dilakukan perhitungan akurasi pada data latih maupun data uji dengan ukuran akurasi SSE, MSE dan MAPE.
+
+```{r}
+accuracy(ramalandesopt101,testing101$daily_revenue)
+```
+Nilai MAPE pada DES juga sangat tinggi > 50% artinya, prediksi kurang akurat
+
+## Kesimpulan
+Pada dataset ini, metode smoothing sederhana (SMA dan SES) menghasilkan MAPE > 20%, yang menandakan prediksi kurang akurat. Oleh karena itu, diperlukan metode forecasting lain yang lebih mampu menangkap pola ARIMA/SARIMA, atau model berbasis machine learning
 

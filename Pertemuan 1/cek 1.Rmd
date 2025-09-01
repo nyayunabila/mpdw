@@ -1,0 +1,10 @@
+---
+title: "cek 1"
+output: html_document
+---
+
+```{r}
+hassil <- 1+2
+hassil
+```
+

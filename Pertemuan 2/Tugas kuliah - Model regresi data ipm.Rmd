@@ -74,22 +74,6 @@ dwtest(model_awal)
 
 ### Metode 1: Cochrane-Orcutt
 
-**Intuisi:** Metode ini secara iteratif (berulang-ulang) mencoba menemukan "tingkat penularan" error (disebut rho, ρ), lalu menyesuaikan model sampai autokorelasinya hilang.
-
-1.  Teori Singkat: C-O adalah prosedur iteratif untuk mengestimasi koefisien regresi. Intinya adalah:
-
-2.  Estimasi koefisien autokorelasi sisaan, rho (ρ).
-
-3.  Gunakan ρ untuk mentransformasi variabel dependen (Y) dan independen (X) menjadi:
-
--   $Y_t^* =Y_t−\rho Y_{t−1}$
-
--   $X_t =X_t−\rho X_{t−1}$
-
-4.  Jalankan regresi OLS pada variabel yang sudah ditransformasi ($Y_t^*$ vs $X_t^*$).
-
-5.  Ulangi langkah 1-3 sampai nilai ρ konvergen.
-
 ```{r}
 model_co <- cochrane.orcutt(model_awal)
 summary(model_co)
@@ -148,7 +132,7 @@ tab <- data.frame("rho" = r, "SSE" = sapply(r, function(i){deviance(hildreth.lu.
 round(tab, 4)
 ```
 
-Pertama-tama akan dicari di mana kira-kira ρ yang menghasilkan SSE minimum. Pada hasil di atas terlihat ρminimum ketika 0.3. Namun, hasil tersebut masih kurang teliti sehingga akan dicari kembali ρ yang lebih optimum dengan ketelitian yang lebih. Jika sebelumnya jarak antar ρ yang dicari adalah 0.1, kali ini jarak antar ρ adalah 0.001 dan dilakukan pada selang 0.2 sampai dengan 0.5.
+Pertama-tama akan dicari di mana kira-kira ρ yang menghasilkan SSE minimum. Pada hasil di atas terlihat ρminimum ketika 0.4. Namun, hasil tersebut masih kurang teliti sehingga akan dicari kembali ρ yang lebih optimum dengan ketelitian yang lebih. Jika sebelumnya jarak antar ρ yang dicari adalah 0.2, kali ini jarak antar ρ adalah 0.001 dan dilakukan pada selang 0.2 sampai dengan 0.5.
 
 ```{r}
 #Rho optimal di sekitar 0.4
@@ -162,7 +146,7 @@ head(tabOpt[order(tabOpt$SSE),])
 par(mfrow = c(1,1))
 plot(tab$SSE ~ tab$rho , type = "l", xlab = "Rho", ylab = "SSE")
 abline(v = tabOpt[tabOpt$SSE==min(tabOpt$SSE),"rho"], lty = 2, col="red",lwd=2)
-text(x=0.341, y=0.2397500, labels = "rho=0.353", cex = 0.8)
+text(x=0.353, y=0.3759558, labels = "rho=0.353", cex = 0.8)
 ```
 
 ```{r}
@@ -210,3 +194,11 @@ data.frame(
 -   Baik metode Cochrane-Orcutt maupun Hildreth-Lu berhasil menghilangkan autokorelasi, yang ditunjukkan oleh statistik D-W yang mendekati 2.
 
 -   Model akhir yang seharusnya kita gunakan adalah salah satu dari model yang telah ditangani, karena estimasi koefisien dan uji signifikansinya sekarang jauh lebih dapat dipercaya.
+
+-   Data **IPM di Semarang tahun 2015–2024** menunjukkan adanya autokorelasi pada model awal.  
+
+-   Berdasarkan hasil analisis, dapat diketahui bahwa penanganan autokorelasi dengan metode **Cochrane-Orcutt** menghasilkan nilai **SSE = 1.5934281**, jika dibandingkan dengan nilai SSE model awal, memang nilai SSE **Cochrane-Orcutt** lebih besar, namun DW Statistiknya lebih mendekati 2.
+
+-   Hasil metode **Hildreth-Lu** menghasilkan **SSE 0.3759558** di mana nilai ini lebih kecil dari pada nilai SSE Model Awal dan nilai DW pada metode **Hildreth-Lu** mendekati 2.
+
+Dengan demikian, kedua metode mampu memperbaiki masalah autokorelasi pada data IPM Riau, dan hasilnya jauh lebih baik dibandingkan model awal. Akan tetapi karena nilai SSE Orcutt lebih pada model awal, maka metode **Hildreth-Lu** lebih baik dalam menangani autokorelasi pada data ini.

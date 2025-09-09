@@ -1,1 +1,37 @@
+---
+title: "Pertemuan 3 - Regresi Lag"
+author: Nyayu Azzahra Nabila
+date: "2025-09-09"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    theme: united
+editor_options:
+  markdown:
+  wrap: 72
+---
 
+## Load Library
+
+```{r}
+library(dLagM)
+library(dynlm)
+library(MLmetrics)
+library(lmtest)
+library(car)
+```
+
+## Impor Data
+
+```{r}
+library(rio)
+data_air_ql <- import("https://raw.githubusercontent.com/nyayunabila/mpdw/refs/heads/main/Pertemuan%203 /NewDelhi_Air_quality.csv")
+
+data_air_ql
+```

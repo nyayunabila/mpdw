@@ -3,15 +3,15 @@ title: "Pertemuan 3 - Regresi Lag"
 author: Nyayu Azzahra Nabila
 date: "2025-09-09"
 output:
-  pdf_document:
-    toc: true
-    toc_depth: '3'
   html_document:
     toc: true
     toc_depth: 3
     toc_float: true
     number_sections: true
     theme: united
+  pdf_document:
+    toc: true
+    toc_depth: '3'
 editor_options:
   markdown:
   wrap: 72
@@ -102,8 +102,8 @@ bptest(modelo3)
 Dari hasil uji asumsi di atas dapat disimpulkan bahwa,
 
 1.  Hubungan X dan Y linear
-2.  Pada tes shapiro-wilk, p-value = 9.77e-12 (\< 0.05), artinya asumsi normalitas tidak terpenuhi
-3.  Pada tes durbin-watson, p-value = 1.15e-05 (\< 0.05), artinya ada autokorelasi
+2.  Pada tes shapiro-wilk, p-value = 5.517e-14 (\< 0.05), artinya asumsi normalitas tidak terpenuhi
+3.  Pada tes durbin-watson, p-value = 3.207e-14 (\< 0.05), artinya ada autokorelasi
 4.  Pada tes breusch pagan, p-value = 0.8412 (\> 0.05), artinya residual konstan
 
 Untuk mengatasi autokorelasi, kita dapat menggunakan regresi lag. Akan digunakan 3 macam model, yaitu Koyck, Distributed Lag, Autoregressive.
@@ -113,7 +113,7 @@ Untuk mengatasi autokorelasi, kita dapat menggunakan regresi lag. Akan digunakan
 ```{r}
 #split data
 train<-o3[1:58,]
-test<-o3[59:71,]
+test<-o3[59:72,]
 ```
 
 ```{r}
@@ -138,20 +138,20 @@ BIC(model.koyck)
 
 -   Dari `summary`, kita dapatkan model:
 
-    $$ \hat{Y_t}=-0.12187+0.3717X_t+0.1978Y_{t-1} $$
+    $$ \hat{Y_t}=0.26260+0.25823X_t+0.42943Y_{t-1} $$
 
-    Koefisien $X_t$ (1.1510) signifikan, artinya nilai \$X\$ saat ini berpengaruh terhadap $Y$.
+    Koefisien $X_t$ (0.25823) signifikan, artinya nilai \$X\$ saat ini berpengaruh terhadap $Y$.
 
--   Koefisien $Y_{t−1}$ (0.1978) tidak signifikan. Hal ini menunjukkan bahwa pada taraf nyata 5% tidak terdapat bukti yang cukup untuk menyatakan adanya pengaruh AQI periode sebelumnya terhadap AQI saat ini. Dengan demikian, AQI saat ini lebih banyak dipengaruhi langsung oleh konsentrasi O3.
+-   Koefisien $Y_{t−1}$ (0.42943) signifikan. Hal ini menunjukkan bahwa Lag variabel dependen (Yt-1) = 0.4294, signifikan (p < 0.001) → AQI periode sebelumnya berpengaruh positif terhadap AQI periode sekarang
 
--   AIC = 57.13, BIC = 65.30
+-   AIC = 92.98106, BIC = 101.1533
 
 ##### Peramalan dan Akurasi
 
 Berikut adalah hasil peramalan y untuk 5 periode kedepan menggunakan model koyck
 
 ```{r}
-fore.koyck <- forecast(model = model.koyck, x=test$Xt, h=13)
+fore.koyck <- forecast(model = model.koyck, x=test$Xt, h=14)
 fore.koyck
 mape.koyck <- MAPE(fore.koyck$forecasts, test$Yt)
 mape.koyck #data test
@@ -161,9 +161,9 @@ GoF(model.koyck)
 
 **Interpretasi Hasil:**
 
--   Akurasi pada data uji, MAPE (Mean Absolute Percentage Error) = 0.0125 (≈ 1.25%) artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 1.25%. Ini menunjukkan bahwa model memiliki performa yang sangat baik dalam memprediksi nilai AQI berdasarkan konsentrasi O3.
+-   Akurasi pada data uji, MAPE (Mean Absolute Percentage Error) = 0.02909543 (≈ 2.9%) artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 2.9% < 10%. Ini menunjukkan bahwa model memiliki performa yang baik dalam memprediksi nilai AQI berdasarkan konsentrasi O3.
 
--   Akurasi pada data latih, MAPE = 0.0116 (≈ 1.16%), artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 1.16%. Ini menunjukkan bahwa model memiliki performa yang sangat baik.
+-   Akurasi pada data latih, MAPE = 0.0149(≈ 1.49%), artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 1.49%. Ini menunjukkan bahwa model memiliki performa yang sangat baik.
 
 #### Regression with Distributed Lag
 
@@ -189,14 +189,14 @@ BIC(model.dlm)
 Dari hasil tersebut terdapat beberapa peubah yang berpengaruh signifikan terhadap taraf nyata 5% yaitu $x_t$ , $x_{t-7}$ , $x_{t-8}$ , $x_{t-9}$. Adapun keseluruhan model yang terbentuk adalah
 
 $$
-\hat{Y_t}=-0.54736+0.42547X_t+0.10271X_{t-1}+ ... -0.08293X_{t10}
-$$ AIC = 48.96, BIC = 73.26
+\hat{Y_t}=-0.64267+0.42814X_t+0.13889X_{t-1}+ ... -0.09537X_{t10}
+$$ AIC = 24.10757, BIC = 48.43318
 
 ##### Peramalan dan Akurasi
 
 ```{r}
 #peramalan dan akurasi
-fore.dlm <- forecast(model = model.dlm, x=test$Xt, h=13)
+fore.dlm <- forecast(model = model.dlm, x=test$Xt, h=14)
 
 #akurasi data test
 mape.dlm<- MAPE(fore.dlm$forecasts, test$Yt)
@@ -208,9 +208,9 @@ GoF(model.dlm)
 
 **Interpretasi Hasil:**
 
--   Akurasi pada data uji, MAPE (Mean Absolute Percentage Error) = 0.0114 (≈ 1.14%) artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 1.14%. Ini menunjukkan bahwa model memiliki performa yang sangat baik dalam memprediksi nilai AQI berdasarkan konsentrasi O3.
+-   Akurasi pada data uji, MAPE (Mean Absolute Percentage Error) = 0.0127254 (≈ 1.27%) artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 1.27%. Ini menunjukkan bahwa model memiliki performa yang sangat baik dalam memprediksi nilai AQI berdasarkan konsentrasi O3.
 
--   Akurasi pada data latih, MAPE = 0.0075 (≈ 0.75%), artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 0.75%. Ini menunjukkan bahwa model memiliki performa yang sangat baik.
+-   Akurasi pada data latih, MAPE = 0.007373085 (≈ 0.737%), artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 0.737%. Ini menunjukkan bahwa model memiliki performa yang sangat baik.
 
 #### Autoregressive Distributed Lag
 
@@ -244,13 +244,13 @@ BIC(model.ardl)
 
 **Interpretasi Hasil:**
 
--   Model ARDL menemukan bahwa pengaruh utama tetap berasal dari O₃ saat ini (Xt.t), ditambah efek yang tertunda di periode ke-8 (negatif, signifikan).
+-   Model ARDL menemukan bahwa pengaruh utama berasal dari O₃ saat ini (Xt.t, koefisien = 0.4066, p < 0.001) yang signifikan pada taraf 5%.
 -   Nilai AQI sebelumnya (autoregresif Yt-1, Yt-2) tidak signifikan, artinya AQI lebih banyak dipengaruhi oleh kondisi O₃ dibandingkan "memori" AQI itu sendiri.
 
 ##### Peramalan dan Akurasi
 
 ```{r}
-fore.ardl <- forecast(model = model.ardl, x=test$Xt, h=13)
+fore.ardl <- forecast(model = model.ardl, x=test$Xt, h=14)
 fore.ardl
 
 mape.ardl <- MAPE(fore.ardl$forecasts, test$Yt)
@@ -261,7 +261,7 @@ GoF(model.ardl)
 
 **Interpretasi Hasil:**
 
--   Akurasi pada data uji, MAPE (Mean Absolute Percentage Error) = 0.0153 (≈ 1.53%) artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 1.53%. Ini menunjukkan bahwa model memiliki performa yang sangat baik dalam memprediksi nilai AQI berdasarkan konsentrasi O3.
+-   Akurasi pada data uji, MAPE (Mean Absolute Percentage Error) = 0.01445912 (≈ 1.44%) artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 1.44%. Ini menunjukkan bahwa model memiliki performa yang sangat baik dalam memprediksi nilai AQI berdasarkan konsentrasi O3.
 
 -   Akurasi pada data latih, MAPE = 0.0071 (≈ 0.71%), artinya rata-rata kesalahan prediksi model koyck terhadap data uji adalah sekitar 0.75%. Ini menunjukkan bahwa model memiliki performa yang sangat baik.
 
@@ -297,4 +297,4 @@ legend("topleft", c("aktual", "koyck", "DLM", "autoregressive"),
 
 **Interpretasi Hasil:**
 
--   Dari grafik terlihat bahwa semua model mengikuti pola data aktual dengan sangat baik. Perbedaan antar model kecil sekali. Tetapi jika kita bandingkan nilai MAPE, model DLM memiliki nilai MAPE terendah (1.14%). Hal ini menunjukkan bahwa **DLM (Distributed Lag Model)** adalah model terbaik untuk data ini karena memiliki MAPE terkecil.
+-   Dari grafik terlihat bahwa semua model mengikuti pola data aktual dengan sangat baik. Perbedaan antar model kecil sekali. Tetapi jika kita bandingkan nilai MAPE, model DLM memiliki nilai MAPE terendah (1.27%). Hal ini menunjukkan bahwa **DLM (Distributed Lag Model)** adalah model terbaik untuk data ini karena memiliki MAPE terkecil.

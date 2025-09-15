@@ -271,6 +271,6 @@ legend("topleft", c("aktual", "koyck", "DLM", "autoregressive"),
 ```
 **Interpretasi Hasil:**
 
--   Dari grafik terlihat bahwa semua model mengikuti pola data aktual dengan sangat baik. Perbedaan antar model kecil sekali. Tetapi jika 
--   Nilai AQI sebelumnya (autoregresif Yt-1, Yt-2) tidak signifikan, artinya AQI lebih banyak dipengaruhi oleh kondisi O₃ dibandingkan "memori" AQI itu sendiri.
+-   Dari grafik terlihat bahwa semua model mengikuti pola data aktual dengan sangat baik. Perbedaan antar model kecil sekali. Tetapi jika kita bandingkan nilai MAPE, model DLM memiliki nilai MAPE terendah (1.14%). Hal ini menunjukkan bahwa **DLM (Distributed Lag Model)** adalah model terbaik untuk data ini karena memiliki MAPE terkecil.
+
 

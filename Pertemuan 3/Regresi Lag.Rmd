@@ -232,7 +232,7 @@ data.frame("q_optimum" = q_opt, "p_optimum" = p_opt,
            "AIC"=model.ardl.opt$min.Stat)
 ```
 
-Dari tabel di atas, dapat terlihat bahwa nilai AIC terendah didapat ketika $p=13$ dan $q=2$, yaitu sebesar `15.06976`. Artinya, model autoregressive optimum didapat ketika $p=2$ dan $q=13$.
+Dari tabel di atas, dapat terlihat bahwa nilai AIC terendah didapat ketika $p=13$ dan $q=2$, yaitu sebesar `15.06976`. Artinya, model autoregressive optimum didapat ketika $p13$ dan $q=2$.
 
 ```{r}
 model.ardl <- ardlDlm(formula = Yt ~ Xt, 

@@ -2116,7 +2116,7 @@ data.frame(&quot;q_optimum&quot; = q_opt, &quot;p_optimum&quot; = p_opt,
 <pre><code>##   q_optimum p_optimum      AIC
 ## 1         2        13 16.55044</code></pre>
 <p>Dari tabel di atas, dapat terlihat bahwa nilai AIC terendah didapat
-ketika <span class="math inline">\(p=6\)</span> dan <span class="math inline">\(q=1\)</span>, yaitu sebesar <code>15.06976</code>.
+ketika <span class="math inline">\(p=13\)</span> dan <span class="math inline">\(q=2\)</span>, yaitu sebesar <code>15.06976</code>.
 Artinya, model autoregressive optimum didapat ketika <span class="math inline">\(p=2\)</span> dan <span class="math inline">\(q=13\)</span>.</p>
 <pre class="r"><code>model.ardl &lt;- ardlDlm(formula = Yt ~ Xt, 
                          data = train,p = 13, q = 2)

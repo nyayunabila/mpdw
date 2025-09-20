@@ -19,12 +19,114 @@ editor_options:
 
 ## White Noise
 
+Kita akan membangkitkan white noise, dengan ketentuan: - nomor 1090 dipilih sebagai nomor set.seed karena ini adalah angka NIM saya. - rnorm dibangkitkan 300 baris sesuai perintah soal
+
 ```{r}
 set.seed(1090)
-wn <- rnorm(200)
+wn <- rnorm(300) 
 ts.plot(wn)
 ```
 
+```{r}
+par(mfrow = c(1, 2)) 
+acf(wn)
+acf(wn, xlim = c(1, 20))
+```
 
+**Interpretasi Hasil:**
 
+-   Pada plot kiri, di lag 0 nilai ACF, wajar, karena tiap data pasti berkorelasi sempurna dengan dirinya sendiri. Namun, pada lag 1 hingga lag 20, nilai ACF berada di sekitar 0, yang menunjukkan tidak ada korelasi signifikan antara nilai-nilai pada lag tersebut.
+
+-   Plot kanan memperlihatkan nilai ACF pada lag 1 hingga lag 20 dengan batas kepercayaan (confidence interval) yang ditandai oleh garis horizontal biru. Nilai ACF berada di dalam batas kepercayaan ini, yang mengindikasikan bahwa tidak ada korelasi signifikan pada lag-lag tersebut. Hal ini konsisten dengan karakteristik white noise, di mana nilai-nilai acak tidak menunjukkan pola korelasi yang signifikan.
+
+## Proses MA(2)
+
+### Pembangkitan Manual
+
+Akan dibangkitkan proses MA (2) dengan $\theta_1 = 0.4$, $\theta_2 = 0.6$, $c=0$ sebanyak 300 observasi. Karena diperlukan dua nilai awal untuk $e_{t-1}$ dan $e_{t-2}$, masukkan dua nilai pertama white noise sebagai nilai awal tersebut.
+
+```{r}
+set.seed(1090)
+ma2 <- wn[1:2]
+```
+
+Nilai-nilai selanjutnya dapat dicari melalui *loop*. Bentuk loop dapat dilihat dari rumus MA(2) yang hendak dibangkitkan:
+
+$$
+y_t = e_t+0.4e_{t-1}+0.6e_{t-2}
+$$
+
+```{r}
+for(i in 3:300){
+  ma2[i] <- wn[i] + 0.4*wn[i-1] + 0.6*wn[i-2]
+}
+```
+
+### Pembangkitan dengan arima.sim
+
+```{r}
+ma2_ <- arima.sim(model=list(orser=c(0,0,2), ma=c(0.4,0.6)), n=300)
+ma2_
+```
+
+### Karakteristik Proses MA(2)
+
+#### Plot Time Series
+
+```{r}
+ts.plot(ma2, main = "Time Series MA(2)")
+```
+
+**Interpretasi Hasil:**
+
+-   Berdasarkan plot time series, terlihat bahwa data MA(2) yang dibangkitkan stasioner dalam rataan.
+
+#### Plot ACF
+
+```{r}
+acf(ma2, lag.max=20, main="ACF MA(2)")
+```
+**Interpretasi Hasil:**
+
+-   Berdasarkan plot ACF MA (2), menunjukkan pola cut off pada lag 2. 
+
+#### Plot PACF
+
+```{r}
+pacf(ma2, main="PACF MA(2)")
+```
+**Interpretasi Hasil:**
+
+-   Berdasarkan plot PACF MA (2), menunjukkan pola tails off (menurun perlahan, tidak berhenti di lag tertentu). 
+
+-    Jika dilihat pada plot PACF MA (2), garis setelah lag 2 berosilasi (positif -> negatif -> positif), cenderung terlihat seperti pola sinus.
+
+#### Plot EACF
+
+```{r}
+TSA::eacf(ma2)
+```
+**Interpretasi Hasil:**
+
+-   Berdasarkan pola segitiga nol pada plot EACF, terlihat bahwa segitiga nol berada pada ordo AR(0) dan ordo MA(2)
+
+#### Kesimpulan: Apakah data stationer?
+
+1.  Plot time series MA (2), menunjukkan fluktuasi data naik-turun di sekitar rataan yang konstan dan variansi relatif stabil (ciri data stationer)
+
+2.  Plot ACF MA(2), terlihat cut off di lag 2, artinya hanya signifikan sampai lag 2, sisanya mendekati nol, pola ini khas untuk proses MA(2) yang stationer
+
+3.  Plot PACF MA(2), terlihat tails off dengan pola cenderung terlihat pola sinus (konsisten dengan sifat MA (q))
+
+4.  Plot EACF, menunjukkan segitiga nol di p=0 dan q=2, mengkonfirmasi bahwa modelnya MA(2), dengan MA(q) selalu stationer
+
+5. Kesimpulan: berdasarkan semua plot, data telah stationer. Tidak perlu differencing.
+
+### Scatterplot antar Lag
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-1}$
+
+```{r}
+
+```
 

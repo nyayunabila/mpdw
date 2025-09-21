@@ -86,26 +86,29 @@ ts.plot(ma2, main = "Time Series MA(2)")
 ```{r}
 acf(ma2, lag.max=20, main="ACF MA(2)")
 ```
+
 **Interpretasi Hasil:**
 
--   Berdasarkan plot ACF MA (2), menunjukkan pola cut off pada lag 2. 
+-   Berdasarkan plot ACF MA (2), menunjukkan pola cut off pada lag 2.
 
 #### Plot PACF
 
 ```{r}
 pacf(ma2, main="PACF MA(2)")
 ```
+
 **Interpretasi Hasil:**
 
--   Berdasarkan plot PACF MA (2), menunjukkan pola tails off (menurun perlahan, tidak berhenti di lag tertentu). 
+-   Berdasarkan plot PACF MA (2), menunjukkan pola tails off (menurun perlahan, tidak berhenti di lag tertentu).
 
--    Jika dilihat pada plot PACF MA (2), garis setelah lag 2 berosilasi (positif -> negatif -> positif), cenderung terlihat seperti pola sinus.
+-   Jika dilihat pada plot PACF MA (2), garis setelah lag 2 berosilasi (positif -\> negatif -\> positif), cenderung terlihat seperti pola sinus.
 
 #### Plot EACF
 
 ```{r}
 TSA::eacf(ma2)
 ```
+
 **Interpretasi Hasil:**
 
 -   Berdasarkan pola segitiga nol pada plot EACF, terlihat bahwa segitiga nol berada pada ordo AR(0) dan ordo MA(2)
@@ -120,13 +123,24 @@ TSA::eacf(ma2)
 
 4.  Plot EACF, menunjukkan segitiga nol di p=0 dan q=2, mengkonfirmasi bahwa modelnya MA(2), dengan MA(q) selalu stationer
 
-5. Kesimpulan: berdasarkan semua plot, data telah stationer. Tidak perlu differencing.
+5.  Kesimpulan: berdasarkan semua plot, data telah stationer. Tidak perlu differencing.
 
 ### Scatterplot antar Lag
 
 #### Korelasi antara $Y_t$ dengan $Y_{t-1}$
 
 ```{r}
-
+plot(ma2[-1], ma2[-300], xlab="Y(t-1)", ylab="Yt")
+cor(ma2[-1], ma2[-300])
 ```
 
+perhitungan teoritis. $$
+\rho_k = \frac{(1-\theta \phi)(\phi-\theta)}{1-2\theta\phi+\theta^2}\phi^{k-1} \:untuk \:k\ge1
+$$
+
+$$
+\rho_1 = \frac{(\theta_1+((\theta_1)(\theta_2))}{1-2(-0.5)(0.7)+(-0.5)^2}0.7^{1-1}=0,8307692 $$
+
+```{r}
+
+```

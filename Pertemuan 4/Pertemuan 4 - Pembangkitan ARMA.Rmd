@@ -19,7 +19,11 @@ editor_options:
 
 ## White Noise
 
-Kita akan membangkitkan white noise, dengan ketentuan: - nomor 1090 dipilih sebagai nomor set.seed karena ini adalah angka NIM saya. - rnorm dibangkitkan 300 baris sesuai perintah soal
+Kita akan membangkitkan white noise, dengan ketentuan:
+
+-   nomor 1090 dipilih sebagai nomor set.seed karena ini adalah angka NIM saya
+
+-   rnorm dibangkitkan 300 baris sesuai perintah soal
 
 ```{r}
 set.seed(1090)
@@ -53,19 +57,19 @@ ma2 <- wn[1:2]
 Nilai-nilai selanjutnya dapat dicari melalui *loop*. Bentuk loop dapat dilihat dari rumus MA(2) yang hendak dibangkitkan:
 
 $$
-y_t = e_t+0.4e_{t-1}+0.6e_{t-2}
+y_t = e_t-0.4e_{t-1}-0.6e_{t-2}
 $$
 
 ```{r}
 for(i in 3:300){
-  ma2[i] <- wn[i] + 0.4*wn[i-1] + 0.6*wn[i-2]
+  ma2[i] <- wn[i] - 0.4*wn[i-1] - 0.6*wn[i-2]
 }
 ```
 
 ### Pembangkitan dengan arima.sim
 
 ```{r}
-ma2_ <- arima.sim(model=list(orser=c(0,0,2), ma=c(0.4,0.6)), n=300)
+ma2_ <- arima.sim(model=list(order=c(0,0,2), ma=c(0.4,0.6)), n=300)
 ma2_
 ```
 
@@ -101,8 +105,6 @@ pacf(ma2, main="PACF MA(2)")
 
 -   Berdasarkan plot PACF MA (2), menunjukkan pola tails off (menurun perlahan, tidak berhenti di lag tertentu).
 
--   Jika dilihat pada plot PACF MA (2), garis setelah lag 2 berosilasi (positif -\> negatif -\> positif), cenderung terlihat seperti pola sinus.
-
 #### Plot EACF
 
 ```{r}
@@ -119,7 +121,7 @@ TSA::eacf(ma2)
 
 2.  Plot ACF MA(2), terlihat cut off di lag 2, artinya hanya signifikan sampai lag 2, sisanya mendekati nol, pola ini khas untuk proses MA(2) yang stationer
 
-3.  Plot PACF MA(2), terlihat tails off dengan pola cenderung terlihat pola sinus (konsisten dengan sifat MA (q))
+3.  Plot PACF MA(2), terlihat tails off (konsisten dengan sifat MA (q))
 
 4.  Plot EACF, menunjukkan segitiga nol di p=0 dan q=2, mengkonfirmasi bahwa modelnya MA(2), dengan MA(q) selalu stationer
 
@@ -134,13 +136,397 @@ plot(ma2[-1], ma2[-300], xlab="Y(t-1)", ylab="Yt")
 cor(ma2[-1], ma2[-300])
 ```
 
-perhitungan teoritis. $$
-\rho_k = \frac{(1-\theta \phi)(\phi-\theta)}{1-2\theta\phi+\theta^2}\phi^{k-1} \:untuk \:k\ge1
-$$
+perhitungan teoritis.
 
 $$
-\rho_1 = \frac{(\theta_1+((\theta_1)(\theta_2))}{1-2(-0.5)(0.7)+(-0.5)^2}0.7^{1-1}=0,8307692 $$
+\rho_1 = \frac{(-\theta_1+((\theta_1)(\theta_2))}{1-\theta_1^2+\theta_2^2}$$
 
 ```{r}
+rho_1 <- (-0.4 + (0.4*0.6)) / (1 - 0.4^2 + 0.6^2)
+rho_1
+```
+
+**Interpretasi Hasil:** - Korelasi antara $Y_t$ dengan $Y_{t-1}$ dari hasil simulasi mendekati perhitungan teoritis yaitu -0.1
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-2}$
+
+```{r}
+plot(ma2[-c(1,2)], ma2[-c(299,300)], xlab="Y(t-2)", ylab="Yt")
+cor(ma2[-c(1,2)], ma2[-c(299,300)])
+```
+
+perhitungan teoritis.
+
+$$
+\rho_1 = \frac{(-\theta_2)}{1-\theta_1^2+\theta_2^2}$$
+
+```{r}
+rho_2 <- -0.6 / (1 + 0.4^2 + 0.6^2)
+rho_2
+```
+
+**Interpretasi Hasil:** - Korelasi antara $Y_t$ dengan $Y_{t-2}$ dari hasil simulasi mendekati perhitungan teoritis yaitu -0.4
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-3}$
+
+```{r}
+plot(ma2[-c(1,2,3)], ma2[-c(298,299,300)], xlab="Y(t-3)", ylab="Yt")
+cor(ma2[-c(1,2,3)], ma2[-c(298,299,300)])
+```
+
+untuk perhitungan teoritis, maka $\rho_k = 0$ untuk k \> 2, hal ini sesuai dengan hasil simulasi yang mendekati 0.
+
+## Proses AR(2)
+
+### Pembangkitan Manual
+
+Akan dicoba membangkitkan proses AR paling sederhana, yaitu AR(1) dengan $\phi_1 = 0.5$ dan $\phi_2 = 0.2$ sebanyak 300 observasi dan $c=0$.
+
+```{r}
+set.seed(1090)
+wn <- rnorm(300)
+ar2 <- rep(0, 300)
+ar2[1] <- wn[1]   
+ar2[2] <- 0.5*ar2[1] + wn[2]
+```
+
+Nilai-nilai selanjutnya dapat dicari melalui loop. Bentuk loop dapat dilihat dari rumus AR(2) yang hendak dibangkitkan:
+
+$$ Y_t = e_t+0.5Y_{t-1} + 0.2Y_{t-2} $$
+
+```{r}
+for(i in 3:300){
+  ar2[i] <- 0.5*ar2[i-1] + 0.2*ar2[i-2] + wn[i]
+} 
+```
+
+### Pembangkitan dengan arima.sim
+
+```{r}
+set.seed(1090)
+ar2_ <- arima.sim(list(order=c(2,0,0), ar=c(0.5, 0.2)), n=300)
 
 ```
+
+### Karakteristik Proses AR(2)
+
+#### Plot Time Series
+
+```{r}
+ts.plot(ar2, main="Time Series AR(2)")
+```
+
+**Interpretasi Hasil:**
+
+-   Rata-rata fluktuasi terlihat konstan di sekitar rataan, sehingga data AR(2) stasioner dalam rataan. Variansi tampak relatif stabil, tidak terlihat pola musiman berkala. Sehingga, data stationer.
+
+#### Plot ACF
+
+```{r}
+par(mfrow=c(1,3))
+```
+
+```{r}
+acf(ar2, lag.max=20, main="ACF AR(2)")
+```
+
+**Interpretasi Hasil:**
+
+-   pada plot ACF AR(2), terlihat pola tails off (menurun perlahan)
+
+#### Plot PACF
+
+```{r}
+pacf(ar2, lag.max=20, main="PACF AR(2)")
+```
+
+**Interpretasi Hasil:**
+
+-   pada plot ACF AR(2), PACF cut-off di lag 2, ini menegaskan bahwa data yang kita bangkitkan memang sesuai dengan spesifikasi AR(2) (φ1 = 0.5, φ2 = 0.2).
+
+#### Plot EACF
+
+```{r}
+TSA::eacf(ar2)
+```
+
+**Interpretasi Hasil:**
+
+-   Berdasarkan pola segitiga nol pada plot EACF, terlihat bahwa segitiga nol berada pada ordo AR(2) dan ordo MA(0)
+
+#### Kesimpulan: Apakah data stationer?
+
+1.  Plot time series AR (2), menunjukkan fluktuasi data naik-turun di sekitar rataan yang konstan dan variansi relatif stabil (ciri data stationer)
+
+2.  Plot ACF AR(2), terlihat tails off (menurun perlahan), pola ini khas untuk proses AR(p) yang stationer
+
+3.  Plot PACF AR(2), terlihat cut off di lag 2, menegaskan bahwa data yang dibangkitkan memang sesuai dengan spesifikasi AR(2) (φ1 = 0.5, φ2 = 0.2)
+
+4.  Plot EACF, menunjukkan segitiga nol di p=2 dan q=0, mengkonfirmasi bahwa modelnya AR(2), dengan AR(p) selalu stationer
+
+5.  Kesimpulan: berdasarkan semua plot, data telah stationer. Tidak perlu differencing.
+
+### Scatterplot antar Lag
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-1}$
+
+```{r}
+plot(ar2[-1], ar2[-300], main="Yt vs Yt-1")
+cor(ar2[-1], ar2[-300])
+```
+
+perhitungan teoritis.
+
+$$
+\rho_1 = \frac{\phi_1}{1-\phi_2}$$
+
+```{r}
+rho_1 <- 0.5 / (1 - 0.2)
+rho_1
+```
+
+**Interpretasi Hasil:**
+
+-   Korelasi antara $Y_t$ dengan $Y_{t-1}$ dari hasil simulasi mendekati perhitungan teoritis yaitu 0.6
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-2}$
+
+```{r}
+plot(ar2[-c(1,2)], ar2[-c(299,300)], main="Yt vs Yt-2")
+cor(ar2[-c(1,2)], ar2[-c(299,300)])
+```
+
+perhitungan teoritis.
+
+$$
+\rho_1 = \frac{\phi_2(1-\phi_2)+\phi_1^2}{1-\phi_2}$$
+
+```{r}
+rho_2 <- (0.2*(1-0.2) + 0.5^2) / (1 - 0.2)
+rho_2
+```
+
+**Interpretasi Hasil:**
+
+-   Korelasi antara $Y_t$ dengan $Y_{t-2}$ dari hasil simulasi mendekati perhitungan teoritis yaitu 0.5
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-3}$
+
+```{r}
+plot(ar2[-c(1,2,3)], ar2[-c(298,299,300)], main="Yt vs Yt-3")
+cor(ar2[-c(1,2,3)], ar2[-c(298,299,300)])
+```
+
+perhitungan teoritis.
+
+$$
+\rho_1 = {\phi_1(\rho_{k-1})+\phi_2(\rho_{k-2})}$$
+
+```{r}
+rho_3 <- 0.5*rho_2 + 0.2*rho_1
+rho_3
+```
+
+**Interpretasi Hasil:**
+
+-   Korelasi antara $Y_t$ dengan $Y_{t-3}$ dari hasil simulasi mendekati perhitungan teoritis yaitu 0.4
+
+## Proses ARMA(2,2)
+
+### Pembangkitan Manual
+
+Akan dicoba membangkitkan proses ARMA(2,2) dengan $\phi_1 = 0.5$, $\phi_2 = 0.2$, $\theta_1 = 0.4$, $\theta_2 = 0.6$ sebanyak 300 observasi dan $c=0$.
+
+```{r}
+set.seed(1090)
+
+# fungsi dari asprak
+arma.sim <- function(n, macoef, arcoef){
+  manum <- length(macoef)
+  arnum <- length(arcoef)
+  stopifnot(manum < n & arnum < n)
+
+  wn <- rnorm(n, sd = 0.5)
+  init <- max(manum, arnum)
+
+  arma <- wn[1:init]
+  for(i in (init+1):n){
+    mastart <- i - manum
+    maend <- i-1
+    arstart <- i - arnum
+    arend <- i-1
+    arma[i] <- sum(arcoef * arma[arstart:arend]) +
+               sum(macoef * wn[mastart:maend]) +
+               wn[i]
+  }
+  return(arma)
+}
+
+arma22 <- arma.sim(300, macoef = c(0.4, 0.6), arcoef = c(0.5, 0.2))
+arma22
+```
+
+### Pembangkitan dengan arima.sim
+
+```{r}
+set.seed(1090)
+
+arma22_ <- arima.sim(
+  list(order = c(2,0,2), 
+       ar = c(0.5, 0.2), 
+       ma = c(0.4, 0.6)), 
+  n = 300
+)
+
+arma22_
+```
+
+### Karakteristik Proses ARMA(2,2)
+
+#### Plot Time Series
+
+```{r}
+ts.plot(arma22, main="Time Series ARMA(2,2)")
+```
+
+**Interpretasi Hasil:**
+
+-   Rata-rata fluktuasi terlihat konstan di sekitar rataan, sehingga data ARMA(2,2) stasioner dalam rataan. Variansi tampak relatif stabil, tidak terlihat pola musiman berkala. Sehingga, data stationer.
+
+#### Plot ACF
+
+```{r}
+acf(arma22, lag.max = 20, main = "ACF ARMA(2,2)")
+```
+
+**Interpretasi Hasil:**
+
+-   Berdasarkan plot ACF tersebut, terlihat bahwa model ARMA(2,2) hasil simulasi memiliki plot ACF yang tails off, sesuai dengan teori yang ada
+
+#### Plot PACF
+
+```{r}
+pacf(arma22, lag.max = 20, main = "PACF ARMA(2,2)")
+```
+
+**Interpretasi Hasil:**
+
+-   Berdasarkan plot PACF tersebut, terlihat bahwa model ARMA(2,2) hasil simulasi memiliki plot PACF yang tails off, sesuai dengan teori yang ada
+
+#### Plot EACF
+
+```{r}
+TSA::eacf(arma22)
+```
+
+**Interpretasi Hasil:**
+
+-   Berdasarkan pola segitiga nol pada plot EACF, terlihat bahwa segitiga nol berada pada ordo AR(2) dan ordo MA(2)
+
+#### Kesimpulan: Apakah data stationer?
+
+1.  Plot time series ARMA (2,2), menunjukkan fluktuasi data naik-turun di sekitar rataan yang konstan dan variansi relatif stabil (ciri data stationer)
+
+2.  Plot ACF ARMA(2,2), terlihat tails off (menurun perlahan/pola sinus/teredam), pola ini khas untuk proses ARMA(p,q) yang stationer
+
+3.  Plot PACF ARMA(2,2), terlihat tails off (menurun perlahan/pola sinus/teredam), pola ini khas untuk proses ARMA(p,q) yang stationer
+
+4.  Plot EACF, menunjukkan segitiga nol di p=2 dan q=2, mengkonfirmasi bahwa modelnya ARMA(2,2), dengan ARMA(p,q) selalu stationer
+
+5.  Kesimpulan: berdasarkan semua plot, data telah stationer. Tidak perlu differencing.
+
+### Scatterplot antar Lag
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-1}$
+
+```{r}
+plot(arma22[-1], arma22[-300], main="Yt vs Yt-1")
+cor(arma22[-1], arma22[-300])
+```
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-2}$
+
+```{r}
+plot(arma22[-c(1,2)], arma22[-c(299,300)], main="Yt vs Yt-2")
+cor(arma22[-c(1,2)], arma22[-c(299,300)])
+```
+
+#### Korelasi antara $Y_t$ dengan $Y_{t-3}$
+
+```{r}
+plot(arma22[-c(1,2,3)], arma22[-c(298,299,300)], main="Yt vs Yt-2")
+cor(arma22[-c(1,2,3)], arma22[-c(298,299,300)])
+```
+
+#### Perhitungan teoritis
+
+$$
+\rho_k = \frac {\gamma_k}{\gamma_0}
+$$ dengan $$
+\gamma_k = \sigma_e^2 \sum_{j=0}^{\infty} \psi_j \psi_{j+k}
+$$ dimana, $$
+\[
+\begin{aligned}
+\psi_0 &= 1, \\[6pt]
+\psi_1 &= \theta_1 + \phi_1, \\[6pt]
+\psi_2 &= \theta_2 + \phi_1 \psi_1 + \phi_2, \\[6pt]
+\psi_j &= \phi_1 \psi_{j-1} + \phi_2 \psi_{j-2}, \quad \text{untuk } j \geq 3.
+\end{aligned}
+\]
+$$
+
+sehingga $$
+\rho_1 = \frac{\sum_{j=0}^{\infty} \psi_j \psi_{j+1}}{\sum_{j=0}^{\infty} \psi_j^2}
+$$ $$
+\rho_2 = \frac{\sum_{j=0}^{\infty} \psi_j \psi_{j+2}}{\sum_{j=0}^{\infty} \psi_j^2}
+$$ $$
+\rho_3 = \frac{\sum_{j=0}^{\infty} \psi_j \psi_{j+3}}{\sum_{j=0}^{\infty} \psi_j^2}
+$$
+
+```{r}
+# parameter 
+phi1 <- 0.5; phi2 <- 0.2
+theta1 <- 0.4; theta2 <- 0.6
+sigma2 <- 1
+M <- 200   # banyak psi terms untuk aproksimasi
+
+# compute psi_0..psi_M
+psi <- numeric(M+1)
+psi[1] <- 1        # psi_0 stored at index 1
+psi[2] <- theta1 + phi1    # psi_1
+# psi_2:
+psi[3] <- theta2 + phi1*psi[2] + phi2
+
+if(M >= 3){
+  for(j in 4:(M+1)){       # j corresponds to psi_{j-1}
+    idx <- j-1
+    psi[j] <- phi1*psi[idx-1] + phi2*psi[idx-2]  # psi_j = phi1*psi_{j-1} + phi2*psi_{j-2}
+  }
+}
+
+# compute gamma_k for k = 0..K
+K <- 5
+gamma <- numeric(K+1)
+for(k in 0:K){
+  s <- 0
+  for(j in 0:(M-k)){
+    s <- s + psi[j+1]*psi[j+k+1]   # +1 karena index R
+  }
+  gamma[k+1] <- sigma2 * s
+}
+rho <- gamma / gamma[1]   # rho_k = gamma_k / gamma_0
+
+# print rho1, rho2, rho3
+rho1 <- rho[2]; rho2 <- rho[3]; rho3 <- rho[4]
+data.frame(k = 1:3, rho = c(rho1, rho2, rho3))
+```
+
+**Interpretasi Hasil:**
+
+-   Korelasi antara $Y_t$ dengan $Y_{t-1}$ dari hasil simulasi mendekati perhitungan teoritis yaitu 0.8
+
+<!-- -->
+
+-   Korelasi antara $Y_t$ dengan $Y_{t-2}$ dari hasil simulasi mendekati perhitungan teoritis yaitu 0.8
+
+-   Korelasi antara $Y_t$ dengan $Y_{t-3}$ dari hasil simulasi mendekati perhitungan teoritis yaitu 0.6

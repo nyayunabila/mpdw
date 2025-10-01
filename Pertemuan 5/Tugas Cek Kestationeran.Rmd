@@ -1,1 +1,151 @@
+---
+title: "Pertemuan 5 - Cek Kestationeran Data"
+author: Nyayu Azzahra Nabila
+date: "2025-09-20"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    theme: united
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+editor_options:
+  markdown:
+  wrap: 72
+---
+
+```{r}
+library(ggplot2)
+library(tsibble)
+library(tseries)
+library(MASS)
+```
+
+## Input Data
+```{r}
+library (rio)
+all <- import("https://raw.githubusercontent.com/nyayunabila/mpdw/refs/heads/main/data%20kelompok%209%20-%20Sheet1.csv")
+all
+```
+
+```{r}
+#ambil baris 101-200
+subset_data <- all[101:200, 2]
+
+subset_data <- gsub(",", ".", subset_data)
+
+subset_data <- as.numeric(subset_data)
+
+#gabungkan data.frame dengan subset_data
+fmcg <- data.frame(
+  periode = 1:100,
+  daily_revenue = subset_data
+)
+```
+
+```{r}
+View(fmcg)
+str(fmcg)
+dim(fmcg)
+```
+
+Mengubah data agar terbaca sebagai data deret waktu dengan fungsi `ts()` .
+
+```{r}
+fmcg.ts <- ts(fmcg$daily_revenue)
+```
+
+Menampilkan ringkasan data
+
+```{r}
+summary(fmcg.ts)
+```
+## Plot *Time Series*
+
+```{r}
+plot_fmcg <- fmcg.ts |> as_tsibble() |> 
+  ggplot(aes(x = index, y = value)) + geom_line() + theme_bw() +
+  xlab("Obs") + ylab("Nilai")
+plot_fmcg
+mean(fmcg.ts)
+```
+```{r}
+lattice::densityplot(as.vector(fmcg.ts))
+```
+
+## Plot ACF
+
+```{r}
+acf(fmcg.ts)
+```
+## ADF
+
+Uji ADF (Augmented Dickey–Fuller) adalah uji statistik yang digunakan
+untuk memeriksa apakah suatu deret waktu stasioner dalam rataan.
+
+```{r}
+tseries::adf.test(fmcg.ts)
+```
+
+## Plot Box-Cox
+
+```{r}
+# Box-Cox
+library(MASS)
+
+# buat model regresi sederhana: daily_revenue ~ periode
+fit <- lm(daily_revenue ~ periode, data = fmcg)
+
+# plot boxcox
+bc <- boxcox(fit, lambda = seq(-1, 4, by = 0.01))
+
+# nilai lambda optimum
+lambda <- bc$x[which.max(bc$y)]
+lambda
+
+# selang kepercayaan 95% untuk lambda
+ci_lambda <- bc$x[bc$y > max(bc$y) - 0.5 * qchisq(0.95, 1)]
+
+# batas bawah dan atas
+ci_lower <- min(ci_lambda)
+ci_upper <- max(ci_lambda)
+
+c(Batas_Bawah = ci_lower, Batas_Atas = ci_upper)
+```
+
+## Transformasi Box-Cox
+```{r}
+library(MASS)
+
+model <- lm(daily_revenue ~ periode, data = fmcg)
+
+# Plot Box-Cox
+bc <- boxcox(model, lambda = seq(0, 5, by = 0.001))
+
+# Cari lambda optimal
+lambda_opt <- bc$x[which.max(bc$y)]
+lambda_opt
+```
+```{r}
+lambda <- 0.437
+
+# Transformasi Box-Cox manual
+y_bc <- (fmcg$daily_revenue^lambda - 1) / lambda
+```
+
+```{r}
+library(MASS)
+
+# Fit model sederhana
+model_bc <- lm(daily_revenue ~ periode, data = fmcg)
+
+# Plot Box-Cox
+boxcox(model_bc, lambda = seq(-1, 2, 0.01))
+
+```
+
+
 

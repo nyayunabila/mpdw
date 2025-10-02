@@ -1,7 +1,7 @@
 ---
 title: "Pertemuan 5 - Cek Kestationeran Data"
 author: Nyayu Azzahra Nabila
-date: "2025-09-20"
+date: "2025-10-02"
 output:
   html_document:
     toc: true
@@ -14,6 +14,7 @@ output:
     toc_depth: '3'
 editor_options:
   markdown:
+    wrap: 72
   wrap: 72
 ---
 
@@ -25,11 +26,16 @@ library(MASS)
 ```
 
 ## Input Data
+
+Import data kelompok dari github
+
 ```{r}
 library (rio)
 all <- import("https://raw.githubusercontent.com/nyayunabila/mpdw/refs/heads/main/data%20kelompok%209%20-%20Sheet1.csv")
 all
 ```
+
+Setelah itu ambil data sesuai dengan pembagian kelompok
 
 ```{r}
 #ambil baris 101-200
@@ -46,13 +52,16 @@ fmcg <- data.frame(
 )
 ```
 
+Melihat struktur data
+
 ```{r}
 View(fmcg)
 str(fmcg)
 dim(fmcg)
 ```
 
-Mengubah data agar terbaca sebagai data deret waktu dengan fungsi `ts()` .
+Mengubah data agar terbaca sebagai data deret waktu dengan fungsi `ts()`
+.
 
 ```{r}
 fmcg.ts <- ts(fmcg$daily_revenue)
@@ -63,7 +72,11 @@ Menampilkan ringkasan data
 ```{r}
 summary(fmcg.ts)
 ```
+
 ## Plot *Time Series*
+
+Melakukan visualisasi data sebagai acuan awal untuk melihat pola data,
+apakah data sudah stasioner atau belum.
 
 ```{r}
 plot_fmcg <- fmcg.ts |> as_tsibble() |> 
@@ -72,16 +85,38 @@ plot_fmcg <- fmcg.ts |> as_tsibble() |>
 plot_fmcg
 mean(fmcg.ts)
 ```
+
 ```{r}
 lattice::densityplot(as.vector(fmcg.ts))
 ```
 
-## Plot ACF
+Kesimpulan yang dapat diambil dari plot time series di atas adalah
+secara visual data yang kita miliki sudah **stationer dalam rataan dan
+ragam** karena tidak terlihat adanya pola musiman atau tren yang jelas.
+**Namun**, untuk memastikan stasioneritas data, **kita perlu melakukan
+uji statistik lebih lanjut** seperti ADF (Augmented Dickey-Fuller) dan
+melihat ACF (Autocorrelation Function).
+
+## Plot **ACF**
 
 ```{r}
 acf(fmcg.ts)
 ```
-## ADF
+
+Kesimpulan yang dapat diambil:
+
+1.  **Data kemungkinan sudah stationer** dalam rataan, hal ini
+    dibuktikan dengan korelasi pada lag 1 yang **cut off** di dalam
+    batas signifikan, tidak menurun perlahan seperti pada data
+    non-stasioner.
+
+<!-- -->
+
+2.  **Tidak ada autokorelasi signifikan** yang tersisa pada sebagian
+    besar lag, hal ini terlihat pada lag \>=1 berada di dalam batas
+    signifikan
+
+## Uji **ADF**
 
 Uji ADF (Augmented Dickey–Fuller) adalah uji statistik yang digunakan
 untuk memeriksa apakah suatu deret waktu stasioner dalam rataan.
@@ -90,17 +125,24 @@ untuk memeriksa apakah suatu deret waktu stasioner dalam rataan.
 tseries::adf.test(fmcg.ts)
 ```
 
+Dari hasil uji ADF, p−value(0.01) lebih kecil dari taraf nyata 5%
+(0.05), maka kita Tolak H0. Artinya data **stationer dalam rataan.**
+
 ## Plot Box-Cox
+
+Selanjutnya akan dilakukan plot box-cox, karena data yang dipakai
+seluruhnya bernilai **positif**, sehingga **tidak diperlukan shifting.**
 
 ```{r}
 # Box-Cox
 library(MASS)
 
-# buat model regresi sederhana: daily_revenue ~ periode
-fit <- lm(daily_revenue ~ periode, data = fmcg)
+index_fmcg <- seq(1:length(fmcg.ts))
 
-# plot boxcox
-bc <- boxcox(fit, lambda = seq(-1, 4, by = 0.01))
+bc <- boxcox(
+    fmcg.ts ~ index_fmcg, 
+    lambda = seq(-1, 4, by = 0.01)
+)
 
 # nilai lambda optimum
 lambda <- bc$x[which.max(bc$y)]
@@ -116,36 +158,75 @@ ci_upper <- max(ci_lambda)
 c(Batas_Bawah = ci_lower, Batas_Atas = ci_upper)
 ```
 
+Hasil interpretasi:
+
+1.  Lambda optimum: 0,44
+2.  Selang kepercayaan: [0.15,0.74]
+
+Karena **tidak** memuat nilai lambda = 1 di selang kepercayaan, maka
+**data tidak stationer dalam ragam.**
+
+## Kesimpulan 
+
+Kestationeran dalam data:
+
+> Data **stationer dalam rataan** tapi **tidak stationer dalam ragam.**
+> Untuk penanganan dilakukan **transformasi box-cox.**
+
 ## Transformasi Box-Cox
+
 ```{r}
 library(MASS)
 
+#Transformasi Box-Cox (Menstabilkan Ragam)
+# Menggunakan lambda = 0.44: Y_trans = Y ^ 0.44
+lambda_optimum <- 0.44 
+fmcg.ts.trans <- fmcg.ts ^ lambda_optimum
+```
+
+```{r}
+index_fmcg <- seq(1:length(fmcg.ts))
 model <- lm(daily_revenue ~ periode, data = fmcg)
 
-# Plot Box-Cox
-bc <- boxcox(model, lambda = seq(0, 5, by = 0.001))
+bc <- boxcox(
+    fmcg.ts.trans ~ index_fmcg, 
+    lambda = seq(-1, 4, by = 0.01)
+)
 
 # Cari lambda optimal
 lambda_opt <- bc$x[which.max(bc$y)]
 lambda_opt
+
+# Selang kepercayaan 95% untuk lambda
+ci_lambda <- bc$x[bc$y > max(bc$y) - 0.5 * qchisq(0.95, 1)]
+
+# Batas bawah dan batas atas
+ci_lower <- min(ci_lambda)
+ci_upper <- max(ci_lambda)
+
+c(Batas_Bawah = ci_lower, Batas_Atas = ci_upper)
 ```
+
+Hasil:
+
+1.  lambda optimal: 0.99
+2.  selang kepercayaan: [0.34,1.68]. Karena selang kepercayaan sudah
+    **memuat nilai lambda = 1**, maka data sudah **stasioner dalam
+    ragam**.
+
+## Cek Kestationeran dalam Rataan Data Setelah Transformasi dengan uji ADF
+
 ```{r}
-lambda <- 0.437
-
-# Transformasi Box-Cox manual
-y_bc <- (fmcg$daily_revenue^lambda - 1) / lambda
+tseries::adf.test(fmcg.ts.trans)
 ```
 
-```{r}
-library(MASS)
+Dari hasil uji ADF, p−value(0.01) lebih kecil dari taraf nyata 5%
+(0.05), maka kita Tolak H0. Artinya data **stationer dalam rataan.**
 
-# Fit model sederhana
-model_bc <- lm(daily_revenue ~ periode, data = fmcg)
+## Kesimpulan data setelah dilakukan transformasi box-cox
 
-# Plot Box-Cox
-boxcox(model_bc, lambda = seq(-1, 2, 0.01))
+Pada **keseluruhan data,**
 
-```
-
-
-
+1.  data sudah **stationer dalam rataan (p-value 0.01 \< 0.05)**
+2.  data sudah **stationer dalam ragam (selang kepercayaan memuat nilai
+    1)**
